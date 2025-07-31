@@ -14,7 +14,7 @@ def main():
             "auto_steps": (1, 1000, 100),
             "auto_delay": (0.1, 2.0, 0.3),
             # no epsilon/prior here—just the common sliders
-        }
+        },
     )
 
 

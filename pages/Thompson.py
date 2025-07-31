@@ -16,7 +16,7 @@ def main():
             "auto_delay": (0.1, 2.0, 0.3),
             "initial_alpha": (1, 20, 5),
             "initial_beta": (1, 20, 5),
-        }
+        },
     )
 
 

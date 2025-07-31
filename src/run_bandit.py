@@ -16,12 +16,12 @@ logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=loggin
 
 
 def log_to_csv(
-        step: int,
-        arm: int,
-        reward: int,
-        counts: List[int],
-        values: List[float],
-        filename: str,
+    step: int,
+    arm: int,
+    reward: int,
+    counts: List[int],
+    values: List[float],
+    filename: str,
 ) -> None:
     """
     Append a log entry to CSV with timestamp, step, arm, reward, counts, and values.
@@ -36,15 +36,14 @@ def log_to_csv(
     }
     df = pd.DataFrame([entry])
     write_header = not os.path.exists(filename)
-    df.to_csv(filename, mode="w" if write_header else "a", header=write_header, index=False)
+    df.to_csv(
+        filename, mode="w" if write_header else "a", header=write_header, index=False
+    )
     t_logger.debug(f"Logged to {filename}: {entry}")
 
 
 def initialize_state(
-        key: str,
-        bandit: "BaseBandit",
-        params: dict,
-        filename: str
+    key: str, bandit: "BaseBandit", params: dict, filename: str
 ) -> "BaseBandit":
     """
     Initialize Streamlit session for any bandit:
@@ -55,18 +54,14 @@ def initialize_state(
     """
     st.session_state.update({**params, "step": 0, "rewards_log": [], "rmse_log": []})
     # Warm-up if the bandit supports it
-    if hasattr(bandit, 'warm_up'):
+    if hasattr(bandit, "warm_up"):
         bandit.warm_up(st.session_state)
     st.session_state[key] = bandit
     return bandit
 
 
 def run_bandit_app(
-        title: str,
-        bandit_cls: Type[BaseBandit],
-        key: str,
-        log_filename: str,
-        params: dict
+    title: str, bandit_cls: Type[BaseBandit], key: str, log_filename: str, params: dict
 ) -> None:
     """
     Generic Streamlit entrypoint for any bandit algorithm.
@@ -82,33 +77,40 @@ def run_bandit_app(
 
     # Sidebar controls
     st.sidebar.title(f"🛠 {title} Parameters")
-    n_arms = st.sidebar.slider("Number of arms", *params['n_arms'])
-    batch = st.sidebar.number_input("Batch pulls", *params['batch'])
-    auto_steps = st.sidebar.number_input("Auto-run steps", *params['auto_steps'])
+    n_arms = st.sidebar.slider("Number of arms", *params["n_arms"])
+    batch = st.sidebar.number_input("Batch pulls", *params["batch"])
+    auto_steps = st.sidebar.number_input("Auto-run steps", *params["auto_steps"])
     auto_run = st.sidebar.checkbox("▶️ Auto-run", key=f"auto_{key}_run")
-    auto_delay = st.sidebar.slider("Auto-delay (s)", *params['auto_delay'])
+    auto_delay = st.sidebar.slider("Auto-delay (s)", *params["auto_delay"])
     algo_kwargs = {}
-    if 'epsilon' in params:
-        algo_kwargs['epsilon'] = st.sidebar.slider("Epsilon", *params['epsilon'])
-    if 'initial_alpha' in params:
-        algo_kwargs['initial_alpha'] = st.sidebar.number_input("initial_alpha", *params['initial_alpha'])
-    if 'initial_beta' in params:
-        algo_kwargs['initial_beta'] = st.sidebar.number_input("initial_beta", *params['initial_beta'])
+    if "epsilon" in params:
+        algo_kwargs["epsilon"] = st.sidebar.slider("Epsilon", *params["epsilon"])
+    if "initial_alpha" in params:
+        algo_kwargs["initial_alpha"] = st.sidebar.number_input(
+            "initial_alpha", *params["initial_alpha"]
+        )
+    if "initial_beta" in params:
+        algo_kwargs["initial_beta"] = st.sidebar.number_input(
+            "initial_beta", *params["initial_beta"]
+        )
 
     # True reward probabilities
     mode = st.sidebar.radio("🎯 True reward probabilities", ["Random", "Manual"])
-    if mode == 'Manual':
+    if mode == "Manual":
         if f"{key}_manual_default" not in st.session_state:
-            st.session_state[f"{key}_manual_default"] = ', '.join(
+            st.session_state[f"{key}_manual_default"] = ", ".join(
                 f"{x:.2f}" for x in np.random.uniform(0.1, 0.9, n_arms)
             )
         manual_str = st.sidebar.text_input(
             f"Enter {n_arms} probabilities (comma-separated)",
             value=st.session_state[f"{key}_manual_default"],
-            key=f"{key}_manual_str"
+            key=f"{key}_manual_str",
         )
         try:
-            vals = [float(x.strip()) for x in st.session_state[f"{key}_manual_str"].split(',')]
+            vals = [
+                float(x.strip())
+                for x in st.session_state[f"{key}_manual_str"].split(",")
+            ]
             if len(vals) == n_arms and all(0 <= v <= 1 for v in vals):
                 manual_probs = vals
             else:
@@ -120,27 +122,25 @@ def run_bandit_app(
         manual_probs = None
 
     needs_init = (
-            key not in st.session_state
-            or st.session_state.get('n_arms') != n_arms
-            or st.session_state.get('mode') != mode
-            or (mode == 'Manual'
-                and st.session_state.get('manual_str') != st.session_state.get(f"{key}_manual_str")
-                )
-            or any(
-        st.session_state.get(param) != algo_kwargs[param]
-        for param in algo_kwargs
-    )
+        key not in st.session_state
+        or st.session_state.get("n_arms") != n_arms
+        or st.session_state.get("mode") != mode
+        or (
+            mode == "Manual"
+            and st.session_state.get("manual_str")
+            != st.session_state.get(f"{key}_manual_str")
+        )
+        or any(
+            st.session_state.get(param) != algo_kwargs[param] for param in algo_kwargs
+        )
     )
 
     if needs_init:
         bandit = initialize_state(
             key,
-            bandit_cls(
-                n_arms,
-                **{**algo_kwargs, 'true_probs': manual_probs}
-            ),
-            {'n_arms': n_arms, 'mode': mode, 'manual_str': manual_str, **algo_kwargs},
-            log_filename
+            bandit_cls(n_arms, **{**algo_kwargs, "true_probs": manual_probs}),
+            {"n_arms": n_arms, "mode": mode, "manual_str": manual_str, **algo_kwargs},
+            log_filename,
         )
     else:
         bandit = st.session_state[key]
@@ -163,7 +163,7 @@ def run_bandit_app(
                 rwd,
                 bandit.counts,
                 bandit.values,
-                log_filename
+                log_filename,
             )
 
     with col1:
@@ -180,29 +180,36 @@ def run_bandit_app(
         st.markdown("### Rewards Over Time")
         if st.session_state.rewards_log:
             df = pd.DataFrame(
-                st.session_state.rewards_log,
-                columns=['step', 'arm', 'reward']
+                st.session_state.rewards_log, columns=["step", "arm", "reward"]
             )
-            st.scatter_chart(df, x='step', y='reward')
+            st.scatter_chart(df, x="step", y="reward")
 
         st.markdown("### RMSE (smoothed)")
         if st.session_state.rmse_log:
             smooth = pd.Series(st.session_state.rmse_log)
             smooth = smooth.rolling(window=2000, min_periods=1).mean()
-            st.line_chart(pd.DataFrame({'RMSE': smooth}))
+            st.line_chart(pd.DataFrame({"RMSE": smooth}))
 
     with col2:
         st.markdown("### True vs Estimated")
-        dfp = pd.DataFrame({
-            'True': bandit.true_probs,
-            'Estimated': bandit.estimated_means()
-        })
-        dfp.index.name = 'Arm'
+        dfp = pd.DataFrame(
+            {"True": bandit.true_probs, "Estimated": bandit.estimated_means()}
+        )
+        dfp.index.name = "Arm"
         st.bar_chart(dfp)
         st.markdown("### Pull Counts")
-        if algo_kwargs.get('initial_alpha', 1) > 1 or algo_kwargs.get('initial_beta', 1) > 1:
-            st.json({i: {"alpha": a, "beta": b, "counts": c} for i, (a, b, c) in
-                     enumerate(zip(bandit.alphas, bandit.betas, bandit.counts))})
+        if (
+            algo_kwargs.get("initial_alpha", 1) > 1
+            or algo_kwargs.get("initial_beta", 1) > 1
+        ):
+            st.json(
+                {
+                    i: {"alpha": a, "beta": b, "counts": c}
+                    for i, (a, b, c) in enumerate(
+                        zip(bandit.alphas, bandit.betas, bandit.counts)
+                    )
+                }
+            )
         else:
             st.json({i: c for i, c in enumerate(bandit.counts)})
 

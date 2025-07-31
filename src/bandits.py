@@ -10,7 +10,9 @@ from src.run_bandit import log_to_csv
 class EpsilonGreedy(BaseBandit):
     """Epsilon-Greedy bandit with exploration rate epsilon."""
 
-    def __init__(self, n_arms: int, epsilon: float, true_probs: Optional[List[float]] = None):
+    def __init__(
+        self, n_arms: int, epsilon: float, true_probs: Optional[List[float]] = None
+    ):
         super().__init__(n_arms, true_probs)
         self.epsilon = epsilon
         self.explore_count = 0
@@ -43,7 +45,7 @@ class UCB1(BaseBandit):
         scores = []
         for i in range(self.n_arms):
             if self.counts[i] == 0:
-                scores.append(float('inf'))
+                scores.append(float("inf"))
             else:
                 bonus = np.sqrt(2 * np.log(self.total_pulls) / self.counts[i])
                 scores.append(self.values[i] + bonus)
@@ -59,7 +61,13 @@ class UCB1(BaseBandit):
 class Thompson(BaseBandit):
     """Thompson Sampling bandit with Beta posterior and optional warm-up."""
 
-    def __init__(self, n_arms: int, initial_alpha: int = 1, initial_beta: int = 1, true_probs: Optional[List[float]] = None):
+    def __init__(
+        self,
+        n_arms: int,
+        initial_alpha: int = 1,
+        initial_beta: int = 1,
+        true_probs: Optional[List[float]] = None,
+    ):
         super().__init__(n_arms, true_probs)
         self.alphas = [initial_alpha] * n_arms
         self.betas = [initial_beta] * n_arms
@@ -72,17 +80,17 @@ class Thompson(BaseBandit):
             rwd = self.reward(arm)
             super().update(arm, rwd)
             self.alphas[arm] += rwd
-            self.betas[arm] += (1 - rwd)
-            session_state['step'] += 1
-            session_state['rewards_log'].append((session_state['step'], arm, rwd))
-            session_state['rmse_log'].append(self.rmse())
+            self.betas[arm] += 1 - rwd
+            session_state["step"] += 1
+            session_state["rewards_log"].append((session_state["step"], arm, rwd))
+            session_state["rmse_log"].append(self.rmse())
             log_to_csv(
-                session_state['step'],
+                session_state["step"],
                 arm,
                 rwd,
                 self.counts,
                 self.values,
-                "thompson_logs.csv"
+                "thompson_logs.csv",
             )
 
     def pull(self) -> int:

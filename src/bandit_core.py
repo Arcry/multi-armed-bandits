@@ -9,9 +9,12 @@ class BaseBandit:
     Base class for multi-armed bandits.
     Implements common update, reward, and rmse routines.
     """
+
     def __init__(self, n_arms: int, true_probs: Optional[List[float]] = None):
         self.n_arms = n_arms
-        self.true_probs = true_probs or np.random.uniform(0.1, 0.9, size=n_arms).tolist()
+        self.true_probs = (
+            true_probs or np.random.uniform(0.1, 0.9, size=n_arms).tolist()
+        )
         self.counts = [0] * n_arms
         self.values = [0.0] * n_arms
 
@@ -40,7 +43,10 @@ class BaseBandit:
         """
         RMSE between estimated means and true probabilities.
         """
-        errors = [(est - true) ** 2 for est, true in zip(self.estimated_means(), self.true_probs)]
+        errors = [
+            (est - true) ** 2
+            for est, true in zip(self.estimated_means(), self.true_probs)
+        ]
         return float(np.sqrt(np.mean(errors)))
 
     def pull(self) -> int:
