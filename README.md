@@ -29,3 +29,6 @@ You have two options:
 - Logging: Each pull is logged to CSV with timestamp, enabling offline analysis.
 
 - Warm-up: Thompson Sampling page automatically pulls each arm once to initialize the posterior.
+
+## Link
+- [Live Demo](https://multi-armed-bandits-dash.streamlit.app/)
