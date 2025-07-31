@@ -97,35 +97,41 @@ def run_bandit_app(
 
     # True reward probabilities
     mode = st.sidebar.radio("🎯 True reward probabilities", ["Random", "Manual"])
-    manual_str = ''
-    manual_probs = None
     if mode == 'Manual':
-        default = ', '.join(f"{x:.2f}" for x in np.random.uniform(0.1, 0.9, n_arms))
+        if f"{key}_manual_default" not in st.session_state:
+            st.session_state[f"{key}_manual_default"] = ', '.join(
+                f"{x:.2f}" for x in np.random.uniform(0.1, 0.9, n_arms)
+            )
         manual_str = st.sidebar.text_input(
-            f"Enter {n_arms} probabilities (comma-separated)", default
+            f"Enter {n_arms} probabilities (comma-separated)",
+            value=st.session_state[f"{key}_manual_default"],
+            key=f"{key}_manual_str"
         )
         try:
-            vals = [float(x.strip()) for x in manual_str.split(',')]
+            vals = [float(x.strip()) for x in st.session_state[f"{key}_manual_str"].split(',')]
             if len(vals) == n_arms and all(0 <= v <= 1 for v in vals):
                 manual_probs = vals
             else:
                 st.sidebar.error("Provide valid [0,1] probabilities.")
         except ValueError:
             st.sidebar.error("Invalid format. Use comma-separated numbers.")
+    else:
+        manual_str = None
+        manual_probs = None
 
-    # Check if we need to initialize a new bandit
-    # Compare algorithm-specific args to avoid reinitialization on widget changes
     needs_init = (
             key not in st.session_state
             or st.session_state.get('n_arms') != n_arms
             or st.session_state.get('mode') != mode
-            or st.session_state.get('manual_str') != manual_str
+            or (mode == 'Manual'
+                and st.session_state.get('manual_str') != st.session_state.get(f"{key}_manual_str")
+                )
             or any(
-        (param in algo_kwargs)
-        and (st.session_state.get(param) != algo_kwargs[param])
+        st.session_state.get(param) != algo_kwargs[param]
         for param in algo_kwargs
     )
     )
+
     if needs_init:
         bandit = initialize_state(
             key,
@@ -161,8 +167,10 @@ def run_bandit_app(
             )
 
     with col1:
-        if st.button("Pull Once"): do_pulls(1)
-        if st.button(f"Pull ×{batch}"): do_pulls(batch)
+        if st.button("Pull Once"):
+            do_pulls(1)
+        if st.button(f"Pull ×{batch}"):
+            do_pulls(batch)
         if auto_run:
             for _ in range(auto_steps):
                 do_pulls(batch)
@@ -193,10 +201,10 @@ def run_bandit_app(
         st.bar_chart(dfp)
         st.markdown("### Pull Counts")
         if algo_kwargs.get('initial_alpha', 1) > 1 or algo_kwargs.get('initial_beta', 1) > 1:
-            st.json({i: {"alpha": a, "beta": b, "counts": c} for i, (a, b, c) in enumerate(zip(bandit.alphas, bandit.betas, bandit.counts))})
+            st.json({i: {"alpha": a, "beta": b, "counts": c} for i, (a, b, c) in
+                     enumerate(zip(bandit.alphas, bandit.betas, bandit.counts))})
         else:
             st.json({i: c for i, c in enumerate(bandit.counts)})
-
 
     if st.button("Reset All"):
         if os.path.exists(log_filename):
